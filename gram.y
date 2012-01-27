@@ -12,6 +12,10 @@
  *   may request it from <pekkas@netcore.fi>.
  *
  */
+
+%locations
+%defines
+
 %{
 #include "config.h"
 #include "includes.h"
