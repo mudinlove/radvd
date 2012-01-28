@@ -13,6 +13,7 @@
  *
  */
 
+%define api.pure
 %locations
 %defines
 

@@ -13,6 +13,7 @@
  *
  */
 
+%option reentrant
 %option bison-locations
 %option noyywrap
 %option yylineno
@@ -26,6 +27,9 @@
 #include "includes.h"
 #include "log.h"
 #include "gram.h"
+
+static void user_action(void * p, int lineno, int leng, int * column);
+#define YY_USER_ACTION user_action(yylloc, yylineno, yyleng, &yycolumn);
 
 extern char *conf_file;
 
@@ -158,3 +162,13 @@ high		{ yylval->snum = 1; return SIGNEDNUMBER; }
 
 .		{ return T_BAD_TOKEN; }
 %%
+
+static void user_action(void * p, int lineno, int leng, int * column)
+{
+    YYLTYPE * loc = (YYLTYPE*)p;
+    loc->first_line = loc->last_line = lineno;
+    loc->first_column = *column;
+    loc->last_column = *column +leng -1;
+    *column += leng;
+}
+
