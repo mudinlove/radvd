@@ -1004,6 +1004,7 @@ readin_config(char *fname)
 		return (-1);
 	}
 
+	yydata.filename = fname;
 	yylex_init(&yydata.scaninfo);
 	yyset_in(in, yydata.scaninfo);
 
@@ -1039,7 +1040,7 @@ yyerror(void const * loc, void * vp, char const * msg)
 		t->last_line,  t->last_column,
 		yyget_text(yydata->scaninfo));
 
-	asprintf(&str3, "%s in %s, %s", str1, "filename", str2);
+	asprintf(&str3, "%s in %s, %s", str1, yydata->filename, str2);
 
 	flog (LOG_ERR, "%s", str3);
 
