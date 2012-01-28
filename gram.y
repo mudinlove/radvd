@@ -1,8 +1,8 @@
 /*
  *
  *   Authors:
- *    Pedro Roque		<roque@di.fc.ul.pt>
- *    Lars Fenneberg		<lf@elemental.net>
+ *	Pedro Roque		<roque@di.fc.ul.pt>
+ *	Lars Fenneberg		<lf@elemental.net>
  *
  *   This software is Copyright 1996-2000 by the above mentioned author(s),
  *   All Rights Reserved.
@@ -14,10 +14,13 @@
  */
 
 %define api.pure
+%parse-param {struct yydata * yydata}
 %locations
 %defines
 
 %{
+#define YYERROR_VERBOSE
+static void yyerror(void const * loc, void * vp, char const * s, ...);
 #include "config.h"
 #include "includes.h"
 #include "radvd.h"
@@ -35,7 +38,6 @@ extern int num_lines;
 extern char *yytext;
 
 static void cleanup(void);
-static void yyerror(char *msg);
 static int countbits(int b);
 static int count_mask(struct sockaddr_in6 *m);
 static struct in6_addr get_prefix6(struct in6_addr const *addr, struct in6_addr const *mask);
@@ -61,7 +63,6 @@ static struct in6_addr get_prefix6(struct in6_addr const *addr, struct in6_addr 
 			current->next = value; \
 		} \
 	} while (0)
-
 
 %}
 
@@ -150,6 +151,12 @@ static struct in6_addr get_prefix6(struct in6_addr const *addr, struct in6_addr 
 	struct AdvDNSSL		*dnsslinfo;
 	struct Clients		*ainfo;
 };
+
+%{
+#include "scanner.h"
+#include "parser.h"
+#define YYLEX_PARAM yydata->scaninfo
+%}
 
 %%
 
@@ -982,9 +989,52 @@ void cleanup(void)
 	}
 }
 
+int
+readin_config(char *fname)
+{
+	struct yydata yydata;
+	FILE * in;
+	int rc = 0;
+
+	in = fopen(fname, "r");
+
+	if (!in)
+	{
+		flog(LOG_ERR, "can't open %s: %s", fname, strerror(errno));
+		return (-1);
+	}
+
+	yylex_init(&yydata.scaninfo);
+	yyset_in(in, yydata.scaninfo);
+
+	if (yyparse(&yydata) != 0)
+	{
+		flog(LOG_ERR, "error parsing or activating the config file: %s", fname);
+		rc = -1;
+	}
+
+	yylex_destroy(yydata.scaninfo);
+
+	fclose(in);
+
+	return rc;
+}
+
+
 static void
-yyerror(char *msg)
+yyerror(void const * loc, void * vp, char const * s, ...)
 {
 	cleanup();
-	flog(LOG_ERR, "%s in %s, line %d: %s", msg, conf_file, num_lines, yytext);
+	/*flog(LOG_ERR, "%s in %s, line %d: %s", msg, conf_file, num_lines, yytext);/**/
+
+	YYLTYPE const * t = (YYLTYPE const*)loc;
+	struct yydata * yydata = (struct yydata *)vp;
+	va_list ap;
+	va_start(ap, s); 
+
+	flog (LOG_ERR, "%d.%d-%d.%d %s",
+			t->first_line, t->first_column,
+			t->last_line,  t->last_column,
+			yyget_text(yydata->scaninfo));
 }
+

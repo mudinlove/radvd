@@ -14,6 +14,7 @@
  */
 
 %option reentrant
+%option bison-bridge
 %option bison-locations
 %option noyywrap
 %option yylineno
