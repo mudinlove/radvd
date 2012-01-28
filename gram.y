@@ -20,7 +20,7 @@
 
 %{
 #define YYERROR_VERBOSE
-static void yyerror(void const * loc, void * vp, char const * s, ...);
+static void yyerror(void const * loc, void * vp, char const * s);
 #include "config.h"
 #include "includes.h"
 #include "radvd.h"
@@ -1022,19 +1022,37 @@ readin_config(char *fname)
 
 
 static void
-yyerror(void const * loc, void * vp, char const * s, ...)
+yyerror(void const * loc, void * vp, char const * msg)
 {
-	cleanup();
-	/*flog(LOG_ERR, "%s in %s, line %d: %s", msg, conf_file, num_lines, yytext);/**/
-
+	char * str1 = 0;
+	char * str2 = 0;
+	char * str3 = 0;
 	YYLTYPE const * t = (YYLTYPE const*)loc;
 	struct yydata * yydata = (struct yydata *)vp;
-	va_list ap;
-	va_start(ap, s); 
 
-	flog (LOG_ERR, "%d.%d-%d.%d %s",
-			t->first_line, t->first_column,
-			t->last_line,  t->last_column,
-			yyget_text(yydata->scaninfo));
+	cleanup();
+
+	asprintf(&str1, "%s", msg);
+
+	asprintf(&str2, "location %d.%d-%d.%d: %s",
+		t->first_line, t->first_column,
+		t->last_line,  t->last_column,
+		yyget_text(yydata->scaninfo));
+
+	asprintf(&str3, "%s in %s, %s", str1, "filename", str2);
+
+	flog (LOG_ERR, "%s", str3);
+
+	if (str1) {
+		free(str1);
+	}
+
+	if (str2) {
+		free(str2);
+	}
+
+	if (str3) {
+		free(str3);
+	}
 }
 
