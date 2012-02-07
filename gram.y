@@ -1028,19 +1028,29 @@ yyerror(void const * loc, void * vp, char const * msg)
 	char * str1 = 0;
 	char * str2 = 0;
 	char * str3 = 0;
+	int rc = 0;
 	YYLTYPE const * t = (YYLTYPE const*)loc;
 	struct yydata * yydata = (struct yydata *)vp;
 
 	cleanup();
 
-	asprintf(&str1, "%s", msg);
+	rc = asprintf(&str1, "%s", msg);
+	if (rc == -1) {
+		flog (LOG_ERR, "asprintf failed in yyerror");
+	}
 
-	asprintf(&str2, "location %d.%d-%d.%d: %s",
+	rc = asprintf(&str2, "location %d.%d-%d.%d: %s",
 		t->first_line, t->first_column,
 		t->last_line,  t->last_column,
 		yyget_text(yydata->scaninfo));
+	if (rc == -1) {
+		flog (LOG_ERR, "asprintf failed in yyerror");
+	}
 
-	asprintf(&str3, "%s in %s, %s", str1, yydata->filename, str2);
+	rc = asprintf(&str3, "%s in %s, %s", str1, yydata->filename, str2);
+	if (rc == -1) {
+		flog (LOG_ERR, "asprintf failed in yyerror");
+	}
 
 	flog (LOG_ERR, "%s", str3);
 
